@@ -1,38 +1,46 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 import joblib
 
 # Load dataset
-file_path = "C:/Users/saura/Downloads/Housing.csv"
-housing_data = pd.read_csv(file_path)
+file_path = "C:/Users/saura/Downloads/Housing.csv"  # Replace with the correct dataset path
+data = pd.read_csv(file_path)
 
-# Select features and target
-categorical_features = [
-    "mainroad", "guestroom", "basement", "hotwaterheating",
-    "airconditioning", "prefarea", "furnishingstatus"
-]
-numerical_features = ["area", "bedrooms", "bathrooms", "stories", "parking"]
+# Encode binary categorical variables
+data['mainroad'] = data['mainroad'].map({'yes': 1, 'no': 0})
+data['guestroom'] = data['guestroom'].map({'yes': 1, 'no': 0})
+data['basement'] = data['basement'].map({'yes': 1, 'no': 0})
+data['hotwaterheating'] = data['hotwaterheating'].map({'yes': 1, 'no': 0})
+data['airconditioning'] = data['airconditioning'].map({'yes': 1, 'no': 0})
+data['prefarea'] = data['prefarea'].map({'yes': 1, 'no': 0})
 
-# Encode categorical variables
-label_encoders = {feature: LabelEncoder() for feature in categorical_features}
-for feature in categorical_features:
-    housing_data[feature] = label_encoders[feature].fit_transform(housing_data[feature])
+# One-hot encode the 'furnishingstatus' column
+data = pd.get_dummies(data, columns=['furnishingstatus'], drop_first=True)
 
-# Define features (X) and target (y)
-X = housing_data[numerical_features + categorical_features]
-y = housing_data["price"]
+# Separate features and target variable
+X = data[['area', 'bedrooms', 'bathrooms', 'stories', 'parking', 'mainroad', 'guestroom',
+          'basement', 'hotwaterheating', 'airconditioning', 'prefarea', 'furnishingstatus_semi-furnished', 'furnishingstatus_unfurnished']]
+y = data['price']
 
-# Split data
+# Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Train model
-model = RandomForestRegressor(random_state=42, n_estimators=100)
+# Initialize and train the Linear Regression model
+model = LinearRegression()
 model.fit(X_train, y_train)
 
-# Save model and encoders
-joblib.dump(model, "house_price_model.pkl")
-joblib.dump(label_encoders, "label_encoders.pkl")
+# Make predictions
+y_pred = model.predict(X_test)
 
-print("Model and encoders saved!")
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Squared Error: {mse}")
+print(f"R-squared: {r2}")
+
+# Save the trained model
+joblib.dump(model, "house_price_model_updated.pkl")
+print("Model saved as house_price_model_updated.pkl")
